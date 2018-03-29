@@ -1,7 +1,18 @@
+~options = Server.local.options;
+
 (
+~options.outDevice = 4;
+~options.outDevice_("Soundflower (2ch)") ;
+)
+
+(
+~options.memSize_(4096*16);
 s = Server.local;
 s.boot;
 )
+
+s.quit;
+Server.killAll;
 
 (
 SynthDef.new(\beep, {
@@ -83,46 +94,51 @@ mse = {
 )
 
 (
-var gs_notes, gs_durs, cand1_notes, cand1_durs, cand2_notes, cand2_durs, cand3_notes, cand3_durs, num_candidates, fitnesses, most_fit_notes, t_most_fit_notes, most_fit_durs, t_most_fit_durs, tempo = 16;
+var gs_notes, gs_durs, cand_notes, cand_durs, num_candidates, seq_len, selection_size, fitnesses, most_fit_notes, t_most_fit_notes, most_fit_durs, t_most_fit_durs, prev_total_dur, tempo = 16;
 
 // this is our goal state, basically.
 gs_notes = [57, 60, 62, 64, 65, 64, 62, 59, 55, 57, 59, 60, 57, 57, 56, 57, 59, 55, 52];
 gs_durs = [2, 4, 2, 3, 1, 2, 4, 2, 3, 1, 2, 4, 2, 3, 1, 2, 4, 2, 2];
 
+seq_len = gs_notes.size;
+selection_size = 5;
 num_candidates = 40;
 fitnesses = Array.new(num_candidates);
 most_fit_notes = Array.new(5);
 most_fit_durs = Array.new(5);
 
 // generate the first generation of candidates
-cand1_notes = Array.fill2D(num_candidates, gs_notes.size, {gauss(mean(gs_notes), 6).round(1)});
-cand1_durs = Array.fill2D(num_candidates, gs_durs.size, {(1 + 4.rand.round(1))});
-/*Task({
-	"playing through first candidates.".postln;
-	(0..(cand1_notes.size-1)).do({
-		arg index;
-		var delta = sum(cand1_durs[index]);
-		~playSequence.value(cand1_notes[index], cand1_durs[index], 1, tempo);
-		delta.wait;
-	})
-}).play;*/
+cand_notes = Array.fill2D(num_candidates, gs_notes.size, {gauss(mean(gs_notes), 6).round(1)});
+cand_durs = Array.fill2D(num_candidates, gs_durs.size, {(1 + 4.rand.round(1))});
+prev_total_dur = sum(sum(cand_durs));
+TempoClock.default.sched(1, {
+	Task({
+		"playing through first candidates.".postln;
+		(0..(seq_len-1)).do({
+			arg index;
+			var delta = sum(cand_durs[index]);
+			~playSequence.value(cand_notes[index], cand_durs[index], 1, tempo);
+			delta.wait;
+		})
+	}).play;
+});
 
-// get their fitnesses
-(0..(cand1_notes.size - 1)).do({
+//get their fitnesses
+(0..(seq_len-1)).do({
 	arg index;
-	fitnesses.add(~fitnessFunction.value(cand1_notes[index], cand1_durs[index], gs_notes, gs_durs));
+	fitnesses.add(~fitnessFunction.value(cand_notes[index], cand_durs[index], gs_notes, gs_durs));
 });
 
 (0..(fitnesses.size-1)).do({
 	arg index;
 	fitnesses[index] = [fitnesses[index], index];
-});
+	});
 fitnesses.sort({|aa, bb| aa[0] < bb[0];});
 
 (0..(4)).do({
 	arg index;
-	most_fit_notes.add(cand1_notes[fitnesses[index][1]]);
-	most_fit_durs.add(cand1_durs[fitnesses[index][1]]);
+	most_fit_notes.add(cand_notes[fitnesses[index][1]]);
+	most_fit_durs.add(cand_durs[fitnesses[index][1]]);
 });
 
 most_fit_notes.postln;
@@ -131,18 +147,19 @@ most_fit_durs.postln;
 t_most_fit_notes = ~transpose.value(most_fit_notes);
 t_most_fit_durs = ~transpose.value(most_fit_durs);
 
-cand2_notes = Array.fill2D(num_candidates, gs_notes.size, { | r, c | t_most_fit_notes[c].choose;});
-cand2_durs = Array.fill2D(num_candidates, gs_durs.size, { | r, c | t_most_fit_durs[c].choose;});
-//TempoClock.default.sched(sum(sum(cand1_durs)) + 10, {
-TempoClock.default.sched(1, {
-	"playing through second candidates".postln;
-	(0..(cand2_notes.size-1)).do({
-		arg index;
-		var delta = sum(cand1_durs[index]);
-		~playSequence.value(cand2_notes[index], cand2_durs[index], 1, tempo);
-		delta;
-	})
-}).play;
+cand_notes = Array.fill2D(num_candidates, gs_notes.size, { | r, c | t_most_fit_notes[c].choose;});
+cand_durs = Array.fill2D(num_candidates, gs_durs.size, { | r, c | t_most_fit_durs[c].choose;});
+TempoClock.default.sched(prev_total_dur/2 + 5, {
+	Task({
+		"playing through second candidates".postln;
+		(0..(seq_len-1)).do({
+			arg index;
+			var delta = sum(cand_durs[index]);
+			~playSequence.value(cand_notes[index], cand_durs[index], 1, tempo);
+			delta.wait;
+		})
+	}).play;
+});
 )
 
 // testing area
@@ -183,3 +200,5 @@ a.sort({|aa, bb| aa[1] < bb[1]});
 
 a = [1, 2];
 
+ServerOptions.devices.postln;
+~options.
