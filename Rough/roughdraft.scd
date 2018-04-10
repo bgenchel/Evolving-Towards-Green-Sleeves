@@ -1,8 +1,8 @@
 ~options = Server.local.options;
 
 (
-~options.outDevice = 4;
-~options.outDevice_("Soundflower (2ch)") ;
+~options.outDevice = 0;
+~options.outDevice_("Built-in Output") ;
 )
 
 (
