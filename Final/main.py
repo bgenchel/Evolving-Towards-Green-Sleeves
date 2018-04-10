@@ -8,17 +8,26 @@ import pypianoroll
 from datetime import datetime
 from reverse_pianoroll import piano_roll_to_pretty_midi
 
-NUM_ITERATIONS = 300
-NUM_CANDIDATES = 150
+NUM_ITERATIONS = 700
+NUM_CANDIDATES = 350
 SELECTION_SIZE = 40
-NUM_MUTATIONS = 2
-NOTE_STDDEV = 8 # just a range of notes around the median
+NUM_MUTATIONS = 1
+NOTE_STDDEV = 10 # just a range of notes around the median
 
 
 GREEN_SLEEVES = {"notes": np.array([57, 60, 62, 64, 65, 64, 62, 59, 55, 
-                           57, 59, 60, 57, 57, 56, 57, 59, 55, 52]),
-                 "durations": np.array([2, 4, 2, 3, 1, 2, 4, 2, 3, 1, 
-                                        2, 4, 2, 3, 1, 2, 4, 2, 2])}
+                                    57, 59, 60, 57, 57, 56, 57, 59, 55, 52,
+                                    57, 60, 62, 64, 65, 64, 62, 59, 55,
+                                    57, 59, 60, 59, 57, 56, 54, 56, 57, 52, 57]),
+                 "durations": np.array([2, 4, 2, 3, 1, 2, 4, 2, 3, 
+                                        1, 2, 4, 2, 3, 1, 2, 4, 2, 4,
+                                        2, 4, 2, 3, 1, 2, 4, 2, 3, 
+                                        1, 2, 3, 1, 2, 3, 1, 2, 4, 2, 4])}
+
+# GREEN_SLEEVES = {"notes": np.array([57, 60, 62, 64, 65, 64, 62, 59, 55, 
+#                            57, 59, 60, 57, 57, 56, 57, 59, 55, 52]),
+#                  "durations": np.array([2, 4, 2, 3, 1, 2, 4, 2, 3, 1, 
+#                                         2, 4, 2, 3, 1, 2, 4, 2, 4])}
 SEQLEN = len(GREEN_SLEEVES["notes"])
 
 def convert_to_piano_roll_mat(notes, durations):
@@ -97,9 +106,8 @@ def main(runpath):
                 [NUM_CANDIDATES, SEQLEN])
 
         output_midi = np.zeros([128, 1])
-        for j in range(2):
-            pr = convert_to_piano_roll_mat(notes_select[j, :], durs_select[j, :])
-            output_midi = np.concatenate((output_midi, pr), axis=1)
+        pr = convert_to_piano_roll_mat(notes_select[0, :], durs_select[0, :])
+        output_midi = np.concatenate((output_midi, pr), axis=1)
         pm = piano_roll_to_pretty_midi(output_midi)
         path = op.join(runpath, 'midi', 'round_%i.mid' % i)
         print('Writing output midi file %s ...' % path)
